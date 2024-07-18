@@ -1,250 +1,68 @@
-# Smart-Contract-Management
-
-Metamask ETH Bank!
-This Solidity smart contract basically shows how a user can connect his/her metamask wallet to a front end and shows how his/her account information can be retrieved and shown on the front-end
+Smart-Contract-Management
+Donate to a Charity Funding Center!
+This project demonstrates a decentralized application (DApp) for charity donations using Ethereum blockchain technology. It includes a Solidity smart contract for managing donations and a React-based frontend for interacting with the contract.
 
 Description
-This Solidity smart contract simply simulates a scenario where a user will be able to connect his/her metamask wallet account to a front-end and shows his/her account number as well as the balance of the said account
+The project consists of two main components:
 
+Smart Contract (Assessment.sol)
+The Solidity smart contract Assessment.sol manages the following functionalities:
+
+defineGoal: Allows the contract owner to set a fundraising goal.
+contribute: Enables users to contribute Ether to the charity campaign.
+extractFunds: Allows the contract owner to withdraw collected funds after the campaign ends.
+Frontend (index.js)
+The frontend is a React application (index.js) that interacts with the smart contract through Web3.js. It provides the following features:
+
+Connect to MetaMask: Allows users to connect their MetaMask wallet.
+View Account Information: Displays the user's Ethereum account and total contributions.
+Contribute: Enables users to contribute to the charity campaign.
+Extract Funds: Allows the contract owner to withdraw funds collected.
 Getting Started
-Executing program
+To get started with this project, follow these steps:
 
-To run this program, you can use gitpod, an online Solidity IDE. To get started, go to the Gitpod website https://metacrafterc-scmstarter-m0r8y82q8c8.ws-us105.gitpod.io
+Prerequisites
+Node.js: Ensure Node.js is installed on your machine. Make sure it is the correct version of Node.js.
+MetaMask: Install the MetaMask extension in your browser.
 
-Once you are on the Gitpod website, create a new file by clicking on the "≡" icon in the left-hand sidebar and clicking on new file. Save the file with a .sol extension (e.g., ErrorHandling.sol). Copy and paste the following code into the file:
+Installation
 
-Assessment.sol
+Clone the starter repository:
+git clone https://github.com/MetacrafterChris/SCM-Starter.git
+cd your-repository
 
-// SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.9;
+Install dependencies:
+npm i
+Update dependencies:
+npm outdated & npm update
 
-contract Assessment {
-    address payable public owner;
-    uint256 public balance = 1000 ether;
+Fix vulnerabilities:
+npm audit fix
 
-    event Deposit(address indexed account, uint256 amount);
-    event Withdraw(address indexed account, uint256 amount);
+Open two additional terminals in your VS Code.
 
-    constructor() payable {
-        owner = payable(msg.sender);
-    }
+In the second terminal, start a local blockchain:
+"npx hardhat node"
 
-    function getBalance() public view returns(uint256) {
-        return balance;
-    }
+In the third terminal, deploy the contract:
+"npx hardhat run --network localhost scripts/deploy.js"
 
-    function deposit(uint256 _amount) public payable {
-        require(msg.sender == owner, "You are not the owner of this account");
-        
-        balance += _amount;
-        emit Deposit(msg.sender, _amount);
-    }
+Back in the first terminal, launch the front-end:
+"npm run dev"
 
-    function withdraw(uint256 _withdrawAmount) public {
-        require(msg.sender == owner, "You are not the owner of this account");
-        require(_withdrawAmount <= balance, "Insufficient balance");
+After this, the project will be running on your localhost, typically at http://localhost:3000/.
 
-        balance -= _withdrawAmount;
-        emit Withdraw(msg.sender, _withdrawAmount);
-    }
-}
+Interact with the Contract
+Once deployed, interact with the contract by:
 
+Connect Wallet: Connect your MetaMask wallet to the application.
+View Account Information: Displays your Ethereum account and current balance.
+Contribute: Use the contribute function to donate Ether to the charity campaign.
+Extract Funds: If you are the contract owner, use the extractFunds function to withdraw collected funds.
+Set Goal: If you are the contract owner, use the defineGoal function to set a fundraising goal.
 
-index.js
-
-import { useState, useEffect } from "react";
-import { ethers } from "ethers";
-import atm_abi from "../artifacts/contracts/Assessment.sol/Assessment.json";
-
-export default function HomePage() {
-  const [ethWallet, setEthWallet] = useState(undefined);
-  const [account, setAccount] = useState(undefined);
-  const [atm, setATM] = useState(undefined);
-  const [balance, setBalance] = useState(1000); 
-  const [amountInput, setAmountInput] = useState("");
-  const [popupMessage, setPopupMessage] = useState("");
-
-  const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
-  const atmABI = atm_abi.abi;
-
-  const getWallet = async () => {
-    if (window.ethereum) {
-      setEthWallet(window.ethereum);
-    }
-
-    if (ethWallet) {
-      const accounts = await ethWallet.request({ method: "eth_accounts" });
-      handleAccount(accounts);
-    }
-  };
-
-  const handleAccount = (accounts) => {
-    if (accounts.length > 0) {
-      console.log("Account connected: ", accounts[0]);
-      setAccount(accounts[0]);
-    } else {
-      console.log("No account found");
-    }
-  };
-
-  const connectAccount = async () => {
-    if (!ethWallet) {
-      alert("MetaMask wallet is required to connect");
-      return;
-    }
-
-    const accounts = await ethWallet.request({ method: "eth_requestAccounts" });
-    handleAccount(accounts);
-    getATMContract();
-  };
-
-  const getATMContract = () => {
-    const provider = new ethers.providers.Web3Provider(ethWallet);
-    const signer = provider.getSigner();
-    const atmContract = new ethers.Contract(contractAddress, atmABI, signer);
-
-    setATM(atmContract);
-  };
-
-  const getBalance = async () => {
-    try {
-      if (atm) {
-        const contractBalance = await atm.getBalance();
-        setBalance(contractBalance.toNumber() / 10**18); // Convert from wei to ETH
-      }
-    } catch (error) {
-      console.error("Error fetching balance:", error);
-    }
-  };
-
-  const deposit = async () => {
-    if (!amountInput || isNaN(amountInput)) {
-      alert("Please enter a valid amount");
-      return;
-    }
-  
-    const amount = ethers.utils.parseEther(amountInput);
-    try {
-      const tx = await atm.deposit(amount);
-      await tx.wait();
-      setPopupMessage(`Successfully deposited ${amountInput} ETH`);
-      setBalance(prevBalance => prevBalance + parseFloat(amountInput));
-      setAmountInput("");
-    } catch (error) {
-      console.error("Deposit error:", error);
-    }
-  };
-  
-  const withdraw = async () => {
-    if (!amountInput || isNaN(amountInput)) {
-      alert("Please enter a valid amount");
-      return;
-    }
-  
-    const amount = ethers.utils.parseEther(amountInput);
-    try {
-      const tx = await atm.withdraw(amount);
-      await tx.wait();
-      setPopupMessage(`Successfully withdrew ${amountInput} ETH`);
-      setBalance(prevBalance => prevBalance - parseFloat(amountInput));
-      setAmountInput("");
-    } catch (error) {
-      console.error("Withdraw error:", error);
-    }
-  };
-  
-  const handleInputChange = (event) => {
-    setAmountInput(event.target.value);
-  };
-
-  const handleClosePopup = () => {
-    setPopupMessage("");
-  };
-
-  const initUser = () => {
-    // check if you have metamask
-    if (!ethWallet) {
-      return <p>Please install Metamask in order to use this ATM.</p>;
-    }
-
-    // Check to see if you are connected
-    if (!account) {
-      return <button onClick={connectAccount}>Please connect your Metamask wallet</button>;
-    }
-
-    if (balance === undefined) {
-      getBalance();
-    }
-
-    return (
-      <div>
-        <p>Your Account: {account}</p>
-        <p style={{ color: "white" }}>Your Balance: {balance} ETH</p>
-        <input
-          type="text"
-          value={amountInput}
-          onChange={handleInputChange}
-          placeholder="Enter amount in ETH"
-          style={{ marginBottom: "10px" }}
-        />
-        <button onClick={deposit} style={{ backgroundColor: "red", color: "white", marginRight: "10px" }}>Deposit</button>
-        <button onClick={withdraw} style={{ backgroundColor: "blue", color: "white" }}>Withdraw</button>
-        {popupMessage && (
-          <div className="popup">
-            <p style={{ color: "green", fontWeight: "bold" }}>{popupMessage}</p>
-            <button onClick={handleClosePopup}>Close</button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  useEffect(() => {
-    getWallet();
-  }, []);
-
-  return (
-    <main className="container">
-      <header>
-        <h1 style={{ color: "white" }}>Welcome to Your ETH Bank!</h1>
-      </header>
-      {initUser()}
-      <style jsx global>{`
-        body {
-          background-color: black;
-          margin: 0;
-          font-family: Arial, sans-serif;
-        }
-
-        .container {
-          text-align: center;
-        }
-
-        .popup {
-          position: fixed;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          background: black;
-          padding: 20px;
-          border: 1px solid #ccc;
-        }
-
-        .popup p {
-          color: white;
-        }
-      `}</style>
-    </main>
-  );
-}
-
-To get the code and the front-end working, follow these steps:
-
-Inside the project directory, in the terminal type: npm i
-Open two additional terminals in your VS code
-In the second terminal type: npx hardhat node
-In the third terminal, type: npx hardhat run --network localhost scripts/deploy.js
-Back in the first terminal, type npm run dev to launch the front-end.
-
-Author
+Authors
 Raymark
+
+License
+This project is licensed under the VincyDaniel License - see the LICENSE.md file for details.
