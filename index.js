@@ -9,6 +9,7 @@ export default function HomePage() {
   const [balance, setBalance] = useState(1000); 
   const [amountInput, setAmountInput] = useState("");
   const [popupMessage, setPopupMessage] = useState("");
+  const [donationMessage, setDonationMessage] = useState("");
 
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
   const atmABI = atm_abi.abi;
@@ -63,7 +64,7 @@ export default function HomePage() {
     }
   };
 
-  const deposit = async () => {
+  const contribute = async () => {
     if (!amountInput || isNaN(amountInput)) {
       alert("Please enter a valid amount");
       return;
@@ -71,17 +72,18 @@ export default function HomePage() {
   
     const amount = ethers.utils.parseEther(amountInput);
     try {
-      const tx = await atm.deposit(amount);
+      const tx = await atm.contribute(amount);
       await tx.wait();
-      setPopupMessage(`Successfully deposited ${amountInput} ETH`);
+      setPopupMessage(`Successfully contributed ${amountInput} ETH`);
+      setDonationMessage(`You have successfully donated ${amountInput} ETH to the charity`);
       setBalance(prevBalance => prevBalance + parseFloat(amountInput));
       setAmountInput("");
     } catch (error) {
-      console.error("Deposit error:", error);
+      console.error("Contribution error:", error);
     }
   };
   
-  const withdraw = async () => {
+  const extractChange = async () => {
     if (!amountInput || isNaN(amountInput)) {
       alert("Please enter a valid amount");
       return;
@@ -89,13 +91,13 @@ export default function HomePage() {
   
     const amount = ethers.utils.parseEther(amountInput);
     try {
-      const tx = await atm.withdraw(amount);
+      const tx = await atm.extractChange(amount);
       await tx.wait();
-      setPopupMessage(`Successfully withdrew ${amountInput} ETH`);
+      setPopupMessage(`Successfully extracted ${amountInput} ETH`);
       setBalance(prevBalance => prevBalance - parseFloat(amountInput));
       setAmountInput("");
     } catch (error) {
-      console.error("Withdraw error:", error);
+      console.error("Extract Change error:", error);
     }
   };
   
@@ -107,13 +109,15 @@ export default function HomePage() {
     setPopupMessage("");
   };
 
+  const handleCloseDonationMessage = () => {
+    setDonationMessage("");
+  };
+
   const initUser = () => {
-    // check if you have metamask
     if (!ethWallet) {
       return <p>Please install Metamask in order to use this ATM.</p>;
     }
 
-    // Check to see if you are connected
     if (!account) {
       return <button onClick={connectAccount}>Please connect your Metamask wallet</button>;
     }
@@ -133,12 +137,18 @@ export default function HomePage() {
           placeholder="Enter amount in ETH"
           style={{ marginBottom: "10px" }}
         />
-        <button onClick={deposit} style={{ backgroundColor: "red", color: "white", marginRight: "10px" }}>Deposit</button>
-        <button onClick={withdraw} style={{ backgroundColor: "blue", color: "white" }}>Withdraw</button>
+        <button onClick={contribute} style={{ backgroundColor: "red", color: "white", marginRight: "10px" }}>Contribute</button>
+        <button onClick={extractChange} style={{ backgroundColor: "blue", color: "white" }}>Extract Change</button>
         {popupMessage && (
           <div className="popup">
             <p style={{ color: "green", fontWeight: "bold" }}>{popupMessage}</p>
             <button onClick={handleClosePopup}>Close</button>
+          </div>
+        )}
+        {donationMessage && (
+          <div className="donation-popup">
+            <p style={{ color: "white", fontWeight: "bold" }}>{donationMessage}</p>
+            <button onClick={handleCloseDonationMessage}>Close</button>
           </div>
         )}
       </div>
@@ -152,7 +162,7 @@ export default function HomePage() {
   return (
     <main className="container">
       <header>
-        <h1 style={{ color: "white" }}>Welcome to Your ETH Bank!</h1>
+        <h1 style={{ color: "white" }}>Donate to a Charity Funding Center!</h1>
       </header>
       {initUser()}
       <style jsx global>{`
@@ -166,7 +176,7 @@ export default function HomePage() {
           text-align: center;
         }
 
-        .popup {
+        .popup, .donation-popup {
           position: fixed;
           top: 50%;
           left: 50%;
@@ -176,8 +186,14 @@ export default function HomePage() {
           border: 1px solid #ccc;
         }
 
-        .popup p {
+        .popup p, .donation-popup p {
           color: white;
+        }
+
+        .donation-popup {
+          top: 20px;
+          left: 20px;
+          transform: translate(0, 0);
         }
       `}</style>
     </main>
