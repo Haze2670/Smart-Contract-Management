@@ -6,10 +6,11 @@ export default function HomePage() {
   const [ethWallet, setEthWallet] = useState(undefined);
   const [account, setAccount] = useState(undefined);
   const [atm, setATM] = useState(undefined);
-  const [balance, setBalance] = useState(1000); 
+  const [balance, setBalance] = useState(0);
   const [amountInput, setAmountInput] = useState("");
   const [popupMessage, setPopupMessage] = useState("");
-  const [donationMessage, setDonationMessage] = useState("");
+  const [payTollEnabled, setPayTollEnabled] = useState(false);
+  const [balanceVisible, setBalanceVisible] = useState(true); 
 
   const contractAddress = "0x5FbDB2315678afecb367f032d93F642f64180aa3";
   const atmABI = atm_abi.abi;
@@ -57,14 +58,14 @@ export default function HomePage() {
     try {
       if (atm) {
         const contractBalance = await atm.getBalance();
-        setBalance(contractBalance.toNumber() / 10**18); // Convert from wei to ETH
+        setBalance(contractBalance.toNumber() / 10**18);
       }
     } catch (error) {
       console.error("Error fetching balance:", error);
     }
   };
 
-  const contribute = async () => {
+  const payToll = async () => {
     if (!amountInput || isNaN(amountInput)) {
       alert("Please enter a valid amount");
       return;
@@ -72,18 +73,22 @@ export default function HomePage() {
   
     const amount = ethers.utils.parseEther(amountInput);
     try {
-      const tx = await atm.contribute(amount);
+      const tx = await atm.payToll(amount);
       await tx.wait();
-      setPopupMessage(`Successfully contributed ${amountInput} ETH`);
-      setDonationMessage(`You have successfully donated ${amountInput} ETH to the charity`);
-      setBalance(prevBalance => prevBalance + parseFloat(amountInput));
+      setPopupMessage(`You have successfully paid ${amountInput} ETH`);
       setAmountInput("");
+      setPayTollEnabled(false);
+      setBalance(0);
     } catch (error) {
-      console.error("Contribution error:", error);
+      if (error.message.includes("You need to set ETH balance first")) {
+        setPopupMessage("You need to set ETH balance first");
+      } else {
+        console.error("Pay Toll error:", error);
+      }
     }
   };
   
-  const extractChange = async () => {
+  const inputBalance = async () => {
     if (!amountInput || isNaN(amountInput)) {
       alert("Please enter a valid amount");
       return;
@@ -91,13 +96,14 @@ export default function HomePage() {
   
     const amount = ethers.utils.parseEther(amountInput);
     try {
-      const tx = await atm.extractChange(amount);
+      const tx = await atm.inputBalance(amount);
       await tx.wait();
-      setPopupMessage(`Successfully extracted ${amountInput} ETH`);
-      setBalance(prevBalance => prevBalance - parseFloat(amountInput));
+      setPopupMessage(`Successfully updated balance to ${amountInput} ETH`);
+      setBalance(parseFloat(amountInput));
+      setPayTollEnabled(true);
       setAmountInput("");
     } catch (error) {
-      console.error("Extract Change error:", error);
+      console.error("Input Balance error:", error);
     }
   };
   
@@ -109,8 +115,8 @@ export default function HomePage() {
     setPopupMessage("");
   };
 
-  const handleCloseDonationMessage = () => {
-    setDonationMessage("");
+  const toggleBalanceVisibility = () => {
+    setBalanceVisible(!balanceVisible);
   };
 
   const initUser = () => {
@@ -129,7 +135,12 @@ export default function HomePage() {
     return (
       <div>
         <p>Your Account: {account}</p>
-        <p style={{ color: "white" }}>Your Balance: {balance} ETH</p>
+        <p style={{ color: "white" }}>
+          Your Balance: {balanceVisible ? `${balance} ETH` : "*"}
+        </p>
+        <button onClick={toggleBalanceVisibility} style={{ backgroundColor: "green", color: "white", marginBottom: "10px" }}>
+          {balanceVisible ? "Hide Balance" : "Show Balance"}
+        </button>
         <input
           type="text"
           value={amountInput}
@@ -137,18 +148,18 @@ export default function HomePage() {
           placeholder="Enter amount in ETH"
           style={{ marginBottom: "10px" }}
         />
-        <button onClick={contribute} style={{ backgroundColor: "red", color: "white", marginRight: "10px" }}>Contribute</button>
-        <button onClick={extractChange} style={{ backgroundColor: "blue", color: "white" }}>Extract Change</button>
+        <button 
+          onClick={payToll} 
+          style={{ backgroundColor: "green", color: "white", marginRight: "10px" }}
+          disabled={!payTollEnabled}
+        >
+          Pay Toll
+        </button>
+        <button onClick={inputBalance} style={{ backgroundColor: "green", color: "white" }}>Input Balance</button>
         {popupMessage && (
           <div className="popup">
             <p style={{ color: "green", fontWeight: "bold" }}>{popupMessage}</p>
             <button onClick={handleClosePopup}>Close</button>
-          </div>
-        )}
-        {donationMessage && (
-          <div className="donation-popup">
-            <p style={{ color: "white", fontWeight: "bold" }}>{donationMessage}</p>
-            <button onClick={handleCloseDonationMessage}>Close</button>
           </div>
         )}
       </div>
@@ -162,7 +173,7 @@ export default function HomePage() {
   return (
     <main className="container">
       <header>
-        <h1 style={{ color: "white" }}>Donate to a Charity Funding Center!</h1>
+        <h1 style={{ color: "white" }}>Pay Tollgate</h1>
       </header>
       {initUser()}
       <style jsx global>{`
@@ -176,7 +187,7 @@ export default function HomePage() {
           text-align: center;
         }
 
-        .popup, .donation-popup {
+        .popup {
           position: fixed;
           top: 50%;
           left: 50%;
@@ -186,14 +197,8 @@ export default function HomePage() {
           border: 1px solid #ccc;
         }
 
-        .popup p, .donation-popup p {
+        .popup p {
           color: white;
-        }
-
-        .donation-popup {
-          top: 20px;
-          left: 20px;
-          transform: translate(0, 0);
         }
       `}</style>
     </main>
