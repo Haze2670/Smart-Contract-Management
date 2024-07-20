@@ -5,7 +5,7 @@ This project demonstrates a decentralized application (DApp) for charity donatio
 Description
 The project consists of two main components:
 
-Smart Contract (Assessment.sol)
+Smart Contract (Tollgate.sol)
 The Solidity smart contract Assessment.sol manages the following functionalities:
 
 defineGoal: Allows the contract owner to set a fundraising goal.
