@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.9;
 
-contract Assessment {
+contract Tollgate {
     address payable public owner;
-    uint256 public balance = 1000 ether;
+    uint256 public balance = 0;
+    bool public balanceSet = false;
 
-    event Contribution(address indexed account, uint256 amount);
-    event ExtractChange(address indexed account, uint256 amount);
+    event Payment(address indexed account, uint256 amount);
+    event BalanceUpdated(address indexed account, uint256 newBalance);
 
     constructor() payable {
         owner = payable(msg.sender);
@@ -16,18 +17,31 @@ contract Assessment {
         return balance;
     }
 
-    function contribute(uint256 _amount) public payable {
-        require(msg.sender == owner, "You are not the owner of this account");
+    function payToll(uint256 _amount) public payable {
+        require(balanceSet, "You need to set ETH balance first");
+        require(_amount > 0, "Amount must be greater than 0");
+        require(_amount <= balance, "Insufficient balance");
         
-        balance += _amount;
-        emit Contribution(msg.sender, _amount);
+        balance -= _amount;
+        emit Payment(msg.sender, _amount);
+
+        if (balance <= 0) {
+            balance = 0;
+            balanceSet = false;
+        }
     }
 
-    function extractChange(uint256 _changeAmount) public {
+    function inputBalance(uint256 _newBalance) public {
         require(msg.sender == owner, "You are not the owner of this account");
-        require(_changeAmount <= balance, "Insufficient balance");
+        
+        balance = _newBalance;
+        balanceSet = true;
+        emit BalanceUpdated(msg.sender, _newBalance);
+    }
 
-        balance -= _changeAmount;
-        emit ExtractChange(msg.sender, _changeAmount);
+    function resetBalance() public {
+        require(msg.sender == owner, "You are not the owner of this account");
+        balance = 0;
+        balanceSet = false;
     }
 }
