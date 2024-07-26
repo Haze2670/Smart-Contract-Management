@@ -1,71 +1,123 @@
-Smart-Contract-Management
-Pay Tollgate
+Tollgate Payment Online
 
-This project demonstrates a decentralized application (DApp) for managing payments using Ethereum blockchain technology. It includes a Solidity smart contract for handling toll payments and a React-based frontend for interacting with the contract.
+This project is a decentralized application (dApp) allowing users to interact with a Tollgate smart contract. Users can input an ETH balance, pay a toll, and manage their balance. The application is connected to the Ethereum blockchain via MetaMask.
 
-Description
-The project consists of two main components:
+Key Components
+Smart Contract
+State Variables
+owner: The address of the contract deployer and owner.
+balance: The current balance available for toll payments.
+balanceSet: A boolean indicating if the balance has been set.
+Events
+Payment: Emitted when a user successfully pays the toll, with details of the account and amount.
+BalanceUpdated: Emitted when the contract's balance is updated.
+Constructor
+Initializes the owner to the contract deployer (msg.sender) and sets the balance to 0.
+Functions
+getBalance(): Returns the current balance of the contract.
+payToll(uint256 _amount): Allows users to pay a toll. Checks that the balance is set and sufficient funds are available.
+inputBalance(uint256 _newBalance): Allows the owner to set the balance.
+resetBalance(): Allows the owner to reset the balance to 0.
+Frontend Application
+The frontend is built using React and communicates with the smart contract via ethers.js.
 
-Smart Contract (Tollgate.sol)
-The Solidity smart contract Tollgate.sol manages the following functionalities:
-
-setGoal: Allows the contract owner to set a toll payment goal.
-inputBalance: Enables the user to enter an ETH amount, which sets the balance to zero and updates it when displayed.
-payToll: Allows users to make payments through MetaMask. This function can only be called after inputBalance has been executed.
-Frontend (index.js)
-The frontend is a React application (index.js) that interacts with the smart contract through Web3.js. It provides the following features:
-
-Connect to MetaMask: Allows users to connect their MetaMask wallet.
-View Account Information: Displays the user's Ethereum account and current balance.
-Set Goal: Enables the contract owner to set a toll payment goal.
-Enter Balance: Allows users to input and display the ETH balance.
-Pay Toll: Enables users to make payments to the tollgate.
-
-Getting Started
-To get started with this project, follow these steps:
-
+Features
+Connect Wallet: Users can connect their MetaMask wallet to interact with the application.
+View Balance: Users can view the current balance (hidden by default for security).
+Input Balance: The contract owner can set the balance.
+Pay Toll: Users can pay a toll using the balance.
+Popup Notifications: Inform users of successful transactions or errors.
+How to Run the Program
 Prerequisites
+Node.js: Make sure you have Node.js installed.
+MetaMask: Users need MetaMask installed in their browser.
 
-Node.js: Ensure Node.js is installed on your machine. Make sure it is the correct version of Node.js.
-MetaMask: Install the MetaMask extension in your browser.
 Installation
-
-Clone the starter repository:
-git clone https://github.com/YourGitHubUsername/Tollgate-Starter.git
-cd your-repository
+Clone the repository:
+Copy code
+git clone <repository-url>
+cd <project-directory>
 Install dependencies:
 
-npm i
-Update dependencies:
+Copy code
+npm install
+Smart Contract Deployment
+Open a terminal and start a local Ethereum network:
 
-npm outdated & npm update
-Fix vulnerabilities:
-
-npm audit fix
-Open two additional terminals in your VS Code.
-
-In the second terminal, start a local blockchain:
-
+Copy code
 npx hardhat node
-In the third terminal, deploy the contract:
+In another terminal, deploy the smart contract:
 
+Copy code
 npx hardhat run --network localhost scripts/deploy.js
-Back in the first terminal, launch the front-end:
+Frontend
+Start the frontend application:
 
+Copy code
 npm run dev
-After this, the project will be running on your localhost, typically at http://localhost:3000/.
+Open your browser and navigate to http://localhost:3000.
+Usage
+Connect your MetaMask wallet.
+If you're the contract owner, set the balance using the "Input Balance" feature.
+Pay the toll using the "Pay Toll" feature, ensuring the balance is sufficient.
+Example Smart Contract Code
+solidity
 
-Interact with the Contract
-Once deployed, interact with the contract by:
 
-Connect Wallet: Connect your MetaMask wallet to the application.
-View Account Information: Displays your Ethereum account and current balance.
-Set Goal: Use the setGoal function to set a toll payment goal.
-Enter Balance: Input and display the ETH balance using the enterBalance function.
-Pay Toll: Make payments to the tollgate using the payToll function.
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.9;
 
-Authors
-Raymark
+contract Tollgate {
+    address payable public owner;
+    uint256 public balance = 0;
+    bool public balanceSet = false;
 
-License
-This project is licensed under the VincyDaniel License - see the LICENSE.md file for details.
+    event Payment(address indexed account, uint256 amount);
+    event BalanceUpdated(address indexed account, uint256 newBalance);
+
+    constructor() payable {
+        owner = payable(msg.sender);
+    }
+
+    function getBalance() public view returns(uint256) {
+        return balance;
+    }
+
+    function payToll(uint256 _amount) public payable {
+        require(balanceSet, "You need to set ETH balance first");
+        require(_amount > 0, "Amount must be greater than 0");
+        require(_amount <= balance, "Insufficient balance");
+        
+        balance -= _amount;
+        emit Payment(msg.sender, _amount);
+
+        if (balance <= 0) {
+            balance = 0;
+            balanceSet = false;
+        }
+    }
+
+    function inputBalance(uint256 _newBalance) public {
+        require(msg.sender == owner, "You are not the owner of this account");
+        
+        balance = _newBalance;
+        balanceSet = true;
+        emit BalanceUpdated(msg.sender, _newBalance);
+    }
+
+    function resetBalance() public {
+        require(msg.sender == owner, "You are not the owner of this account");
+        balance = 0;
+        balanceSet = false;
+    }
+}
+
+
+How to Run the Program
+
+Inside the project directory, in the terminal type: npm i
+Open two additional terminals in your VS code
+In the second terminal type: npx hardhat node
+In the third terminal, type: npx hardhat run --network localhost scripts/deploy.js
+Back in the first terminal, type npm run dev to launch the front-end.
+After this, the project will be running on your localhost. Typically at http://localhost:3000/
